@@ -121,23 +121,36 @@ print('1/d2 = %3.3f pm-1' % (1/d2.nominal_value))
 print('d2/d1 = ', z)
 print('sqrt(3) = %3.3f' % np.sqrt(3))
 print('Error relatiu en x en %:' ,(z-np.sqrt(3)/np.sqrt(3))*100)
+
+
+#%% función para la celda siguiente
+def plot_lambda(deBroglie, Bragg1, dy, m, b, title):
+    plt.errorbar(deBroglie, Bragg1,yerr=dy, fmt='.k', ecolor='.7', label='Dades')
+    plt.plot(deBroglie, m.n*x + b.n, label='y=mx+b' )
+    plt.text(x=11.5,y=31, s='m = {:3.3f}'.format(m), fontsize = 15)
+    
+    plt.ylabel('$\lambda$ (Bragg)', fontsize = 16)
+    plt.xlabel('$\lambda$ (DeBroglie)', fontsize = 16)
+    plt.title(title)
+    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
+    plt.legend(loc='upper left')
+    plt.savefig(title+'comparacio_lambda',dpi=300)
+    plt.show()
+    return None
 #%%
 # Plotea la longitud de onda de De Broglie vs de Bragg
 
 # E keV --> eV
 deBroglie = 1e12*sp.h/np.sqrt(2*sp.m_e*sp.e*E*1e3) # en pm
 Bragg1 = 2*d1.nominal_value*np.sin(theta1) # en pm
+Bragg2 = 2*d2.nominal_value*np.sin(theta2) # en pm
 
-dy = 0.1 # aplicar propagacion 
-m,b = linreg(Bragg1,deBroglie,dy)
-print('m = ', m)
-print('b = ', b)
-fig1 = linplot(Bragg1,deBroglie,dy,m.nominal_value,b.nominal_value,'recta')
-plt.plot(Bragg1,deBroglie,'.')
-plt.xlabel('$\lambda$ (Bragg)')
-plt.ylabel('$\lambda$ (DeBroglie)')
-plt.show()
+# calculem l'incertesa en Bragg1 
+dy1 = 2*np.sqrt((np.sin(theta1)**2*d1.n**2)+(d1.n*np.cos(theta1)*dtheta1)**2)
+dy2 = 2*np.sqrt((np.sin(theta2)**2*d2.n**2)+(d2.n*np.cos(theta2)*dtheta2)**2)
 
-
-
+m1, b1 = linreg(deBroglie, Bragg1, dy1)
+m2, b2 = linreg(deBroglie, Bragg2, dy2)
+# Plot
+plot_lambda(deBroglie, Bragg1, dy1, m1, b1, 'd1'), plot_lambda(deBroglie, Bragg2, dy2, m2, b2, 'd2')
 
