@@ -14,10 +14,10 @@ diam2 = np.array([4.58,4.35,3.96,3.67,3.47,3.32,3.19,3.04,2.93,2.87,2.74,2.62,2.
 ddiam = 0.05 #incertesa en les mesures de diametres en cm
 
 R = 6.5 #cm
-theta1 = (1/4)*np.arcsin(diam1/R)
-theta2 = (1/4)*np.arcsin(diam2/R)
-dtheta1 = (1/4)*1/np.sqrt(1-diam1/R)*ddiam/R
-dtheta2 = (1/4)*1/np.sqrt(1-diam2/R)*ddiam/R
+theta1 = (1/4)*np.arcsin(diam1/2*R)
+theta2 = (1/4)*np.arcsin(diam2/2*R)
+dtheta1 = (1/4)*1/np.sqrt(1-diam1/R)*ddiam/(2*R)
+dtheta2 = (1/4)*1/np.sqrt(1-diam2/R)*ddiam/(2*R)
 
 E = np.array([3.1,3.5,4.0,4.5,5.0,5.5,6.0,6.5,7.0,7.5,8.0,9.0,10.,11.]) #keV
 hc = 1.24e-6 # ev*m
