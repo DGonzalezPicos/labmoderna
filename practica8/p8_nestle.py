@@ -5,9 +5,10 @@ from sklearn.linear_model import LinearRegression
 from uncertainties import ufloat
 from uncertainties.unumpy import *
 #from uncertainties.umath import *
+matplotlib.rcParams['text.usetex'] = True
 
-# Iteracions para el Nestle Sampling (con 1e3 es mas que suficiente)
-npoints = int(1e4)  # si se quiere disminuir el tiempo poner n = 1e2 por ejemplo
+# Iteracions para el Nestle Sampling (con 1e5 es mas que suficiente)
+npoints = int(1e3)  # si se quiere disminuir el tiempo poner n = 1e2 por ejemplo
 #%% Datos del lab
 # mesures dels diametres en cm
 diam1 = np.array([2.46,2.28,2.16,2.02,1.92,1.78,1.75,1.72,1.64,1.58,1.43,1.27,1.32,1.23])
@@ -25,8 +26,8 @@ for i in range(len(diam1)):
     diam1err = np.append(diam1err, ufloat(diam1[i],ddiam))
     diam2err = np.append(diam2err, ufloat(diam2[i],ddiam))
 
-theta1 = (1/4)*arcsin(diam1err/R)
-theta2 = (1/4)*arcsin(diam2err/R)
+theta1 = (1/4)*arcsin(diam1err/(2*R))
+theta2 = (1/4)*arcsin(diam2err/(2*R))
 
 hc = 1.24e-6 # ev*m
 x = (hc/np.sqrt(2*0.511*1e6*E*1e3))*1e12 #  pm
@@ -79,31 +80,49 @@ def nested_linear(x,y,yerr,b,title, npoints):
     # weighted average and covariance:
     p, cov = nestle.mean_and_cov(res.samples, res.weights)
     
+    def rcoef(x,y,a,b): #x,y np.array ---- a,b model parameters
+        ymod = a*x +b
+        sse, ss = [], []
+        for i in range(len(y)):
+            sse.append((y[i] - ymod[i])**2)
+            ss.append((y[i] - np.mean(y))**2)
+        R2 = 1 - (sum(sse)/sum(ss))
+        return R2
+    r2 = rcoef(x,y,p[0],p[1])
     print("m = {0:5.5f} +/- {1:5.5f}".format(p[0], np.sqrt(cov[0, 0])))
     print("b = {0:5.5f} +/- {1:5.5f}".format(p[1], np.sqrt(cov[1, 1])))
     
-    plt.figure(figsize=(9,8))
-    plt.errorbar(x, y, yerr=yerr, capsize=0, fmt='k.', ecolor='.7',label='Dades')
-    plt.plot(x, model(p, x), c='k',label='Ajust lineal')
-    plt.title(title,fontsize=14)
-    plt.xlabel('$hc/\sqrt{2m_e c^2 E(eV)}$',fontsize=14)
-    plt.ylabel(r'$2 \sin{2\theta_1}$',fontsize=14)
-    plt.legend(fontsize=14)
-    plt.savefig(title+'_nestle.png',dpi=300)
+    fig, ax = plt.subplots(1,1, figsize=(9,7))
+    ax.errorbar(x, y, yerr=yerr, capsize=0, fmt='k.', ecolor='.7',label='Dades')
+    ax.plot(x, model(p, x), c='k',label='Ajust lineal')
+    ax.set_title(title,fontsize=18)
+    ax.set_xlabel('$hc/\sqrt{2m_e c^2 E(eV)}$',fontsize=18)
+    ax.set_ylabel(r'$2 \sin{\theta}$',fontsize=18)
+    ax.legend(fontsize=18)
+    m = ufloat(p[0], np.sqrt(cov[0, 0]))
+    b = ufloat(p[1], np.sqrt(cov[1, 1]))
+    ax.text(x=0.045,y=0.75, s='a = {:3.4f} pm'.format(m), fontsize = 18, transform=ax.transAxes)
+    ax.text(x=0.045,y=0.70, s='b = {:3.4f}'.format(b), fontsize = 18, transform=ax.transAxes)
+    ax.text(x=0.040,y=0.65, s='$R^2$ = {:2.4f}'.format(r2), fontsize = 18, transform=ax.transAxes)
+    ax.tick_params(axis='both', labelsize=20)
+    plt.savefig(title+'_fit.png',dpi=300, bbox_inches='tight')
     plt.show()
-    fig = corner.corner(res.samples, weights=res.weights, labels=['a', 'b'],
+    figure = corner.corner(res.samples, weights=res.weights, labels=['a', 'b'],
                         range=[0.99999, 0.99999],show_titles=True,
                         quantiles=(0.16, 0.84), 
                         levels=(1-np.exp(-0.5),),verbose=True,color='blue', 
                         bins=50, smooth=2,truths=p,
                         truth_color='green')
-#    plt.savefig(title+'_corner.png',dpi=300)
+    plt.savefig(title+'_corner.png',dpi=300)
     plt.show() 
     return p, cov
+
+
+
 #%% Call the function to obtain the output
  
-p1, cov1 = nested_linear(x,y1nom,y1s,np.array([10,-10]),'d1',  npoints)
-p2, cov2 = nested_linear(x,y2nom, y2s, np.array([10,-10]),'d2',  npoints)
+p1, cov1 = nested_linear(x,y1nom,y1s,np.array([10,-10]),'Anell gran (d$_1$)',  npoints)
+p2, cov2 = nested_linear(x,y2nom, y2s, np.array([10,-10]),'Anell petit (d$_2$)',  npoints)
 #%%
 f = open('nestle_fit.txt', 'w')
 f.write('# \t Nestle fit y = mx+b \n')
@@ -118,7 +137,9 @@ d2 = 1/ufloat(p2[0],np.sqrt(cov2[0,0]))
 
 a = 2*d1/np.sqrt(3) # a is the atomic separation of atoms, aresta del hexagono
 a_real = 142 #pm, hace falta referenciar el valor 
-print('a/a_real= {:2.2f}'.format(a/a_real)) # debería ser 1...
+print('d1 = ', d1)
+print('d2 = ', d2)
+print('a/a_real= {:2.3f}'.format(a/a_real)) # debería ser 1...
 
 
 #%%
@@ -145,28 +166,42 @@ def nestle_linear2(x, y, yerr, b, title, npoints):
     # weighted average and covariance:
     p, cov = nestle.mean_and_cov(res.samples, res.weights)
 
+    def rcoef(x,y,a,b): #x,y np.array ---- a,b model parameters
+        ymod = a*x +b
+        sse, ss = [], []
+        for i in range(len(y)):
+            sse.append((y[i] - ymod[i])**2)
+            ss.append((y[i] - np.mean(y))**2)
+        R2 = 1 - (sum(sse)/sum(ss))
+        return R2
+    r2 = rcoef(x,y,p[0],p[1])
     print("m = {0:5.5f} +/- {1:5.5f}".format(p[0], np.sqrt(cov[0, 0])))
     print("b = {0:5.5f} +/- {1:5.5f}".format(p[1], np.sqrt(cov[1, 1])))
     # PLOT
-    plt.errorbar(x, y, yerr=yerr, capsize=0, fmt='k.', ecolor='.7',label='Dades')
-    plt.plot(x, model(p, x), c='k',label='y=mx+b')
+    fig, ax = plt.subplots(1,1, figsize= (9,7))
+    ax.errorbar(x, y, yerr=yerr, capsize=0, fmt='k.', ecolor='.7',label='Dades')
+    ax.plot(x, model(p, x), c='k',label='y=mx+b')
     m = ufloat(p[0], np.sqrt(cov[0, 0]))
-    plt.text(x=11.5,y=31, s='m = {:3.3f}'.format(m), fontsize = 15)
+    b = ufloat(p[1], np.sqrt(cov[1, 1]))
+    ax.text(x=0.045,y=0.75, s='a = {:3.4f} pm'.format(m), fontsize = 18, transform=ax.transAxes)
+    ax.text(x=0.045,y=0.70, s='b = {:3.4f}'.format(b), fontsize = 18, transform=ax.transAxes)
+    ax.text(x=0.040,y=0.65, s='$R^2$ = {:2.4f}'.format(r2), fontsize = 18, transform=ax.transAxes)
     
-    plt.ylabel('$\lambda$ (Bragg)', fontsize = 16)
-    plt.xlabel('$\lambda$ (DeBroglie)', fontsize = 16)
-    plt.ticklabel_format(style='sci', axis='y', scilimits=(0,0))
-    plt.legend(loc='upper left',fontsize=14)
-    plt.title(title)
-    plt.savefig(title + 'lambda_nestle.png',dpi=300)
+    ax.set_ylabel('$\lambda$[pm] (Bragg)', fontsize = 18)
+    ax.set_xlabel('$\lambda$[pm] (DeBroglie)', fontsize = 18)
+    ax.ticklabel_format(style='plain',axis='y', scilimits=(0,0))
+    ax.legend(loc='upper left',fontsize=16)
+    ax.set_title(title, fontsize=18)
+    ax.tick_params(axis='both', labelsize=20)
+    plt.savefig(title + 'lambda_nestle.png',dpi=300,bbox_inches='tight')
     plt.show()
-    fig = corner.corner(res.samples, weights=res.weights, labels=['a', 'b'],
+    figure = corner.corner(res.samples, weights=res.weights, labels=['a', 'b'],
                         range=[0.99999, 0.99999],show_titles=True,
                         quantiles=(0.16, 0.84), 
                         levels=(1-np.exp(-0.5),),verbose=True,color='blue', 
                         bins=50, smooth=2,truths=p,
                         truth_color='green')
-#    plt.savefig(title + 'lambda_corner.png',dpi=300)
+    plt.savefig(title + 'lambda_corner.png',dpi=300)
     plt.show() 
     return p, cov
 #%%
@@ -175,7 +210,7 @@ def nestle_linear2(x, y, yerr, b, title, npoints):
 # E keV --> eV
 deBroglie = 1e12*sp.h/np.sqrt(2*sp.m_e*sp.e*E*1e3) # en pm
 Bragg1 = 2*d1*sin(theta1) # en pm
-Bragg2 = 2*d1*sin(theta1) # en pm
+Bragg2 = 2*d2*sin(theta2) # en pm
 
 
 #split the nominal value and the error
@@ -183,6 +218,7 @@ braggnom1, braggs1, braggnom2, braggs2 = (np.array([]) for i in range(4))
 for i in range(len(Bragg1)):
     braggnom1, braggs1 = np.append(braggnom1, Bragg1[i].n), np.append(braggs1, Bragg1[i].n)
     braggnom2, braggs2 = np.append(braggnom2, Bragg2[i].n), np.append(braggs2, Bragg2[i].n)
+       
     
-p1, cov1 = nestle_linear2(deBroglie, braggnom1, braggs1, np.array([10,-10]), 'd1',  npoints )
-p2, cov2 = nestle_linear2(deBroglie, braggnom2, braggs2, np.array([10,-10]), 'd2',  npoints )
+p1, cov1 = nestle_linear2(deBroglie, braggnom1, braggs1, np.array([10,-10]), 'Anell gran (d$_1$)',  npoints )
+p2, cov2 = nestle_linear2(deBroglie, braggnom2, braggs2, np.array([10,-10]), 'Anell petit (d$_2$)',  npoints )
