@@ -108,14 +108,6 @@ def nested_linear(x,y,yerr,b,title, npoints):
     ax.tick_params(axis='both', labelsize=20)
     plt.savefig(title+'_fit.png',dpi=300, bbox_inches='tight')
     plt.show()
-#    figure = corner.corner(res.samples, weights=res.weights, labels=['a', 'b'],
-#                        range=[0.99999, 0.99999],show_titles=True,
-#                        quantiles=(0.16, 0.84), 
-#                        levels=(1-np.exp(-0.5),),verbose=True,color='blue', 
-#                        bins=50, smooth=2,truths=p,
-#                        truth_color='green')
-#    plt.savefig(title+'_corner.png',dpi=300)
-#    plt.show() 
     return p, cov
 
 
@@ -197,20 +189,14 @@ def nestle_linear2(x, y, yerr, b, title, npoints):
     ax.tick_params(axis='both', labelsize=20)
     plt.savefig(title + 'lambda_nestle.png',dpi=300,bbox_inches='tight')
     plt.show()
-#    figure = corner.corner(res.samples, weights=res.weights, labels=['a', 'b'],
-#                        range=[0.99999, 0.99999],show_titles=True,
-#                        quantiles=(0.16, 0.84), 
-#                        levels=(1-np.exp(-0.5),),verbose=True,color='blue', 
-#                        bins=50, smooth=2,truths=p,
-#                        truth_color='green')
-#    plt.savefig(title + 'lambda_corner.png',dpi=300)
-#    plt.show() 
     return p, cov
 #%%
 # Plotea la longitud de onda de De Broglie vs de Bragg
 
 # E keV --> eV
 deBroglie = 1e12*sp.h/np.sqrt(2*sp.m_e*sp.e*E*1e3) # en pm
+deBroglie_rel = 1e12*sp.h/(np.sqrt((sp.e*E*1e3/sp.c)**2 + 2*sp.m_e*sp.e*E*1e3)) # en pm
+sp.c
 Bragg1 = 2*d1*sin(theta1) # en pm
 Bragg2 = 2*d2*sin(theta2) # en pm
 
@@ -222,5 +208,8 @@ for i in range(len(Bragg1)):
     braggnom2, braggs2 = np.append(braggnom2, Bragg2[i].n), np.append(braggs2, Bragg2[i].n)
        
     
-p1, cov1 = nestle_linear2(deBroglie, braggnom1, braggs1, np.array([10,-10]), 'Anell gran (d$_1$)',  npoints )
-p2, cov2 = nestle_linear2(deBroglie, braggnom2, braggs2, np.array([10,-10]), 'Anell petit (d$_2$)',  npoints )
+p1, cov1 = nestle_linear2(deBroglie, braggnom1, braggs1, np.array([100,-10]), 'Anell gran (d$_1$)',  npoints)
+p2, cov2 = nestle_linear2(deBroglie, braggnom2, braggs2, np.array([100,-10]), 'Anell petit (d$_2$)',  npoints)
+
+p1, cov1 = nestle_linear2(deBroglie_rel, braggnom1, braggs1, np.array([100,-10]), 'Anell gran (d$_1$)',  npoints)
+p2, cov2 = nestle_linear2(deBroglie_rel, braggnom2, braggs2, np.array([100,-10]), 'Anell petit (d$_2$)',  npoints)
